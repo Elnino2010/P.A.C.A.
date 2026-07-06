@@ -3,6 +3,7 @@ import ollama
 import time
 #Importamos funciones de otros bloques de código
 #from archivo import funcion
+from memoria import guardar_memoria, acceso_memoria_inteligente, guardar_indice
 
 #DEFINIMOS VARIABLES DEL PROYECTO
 modelo = 'gemma4:e4b'
@@ -42,5 +43,9 @@ def chat():
         #Comprobamos si hay error y lo mandamos
         except Exception as error:
             print(f"El código falló debido a: {error}")
+
+        #Guardamos la memoria de la conversación
+        guardar_memoria(pregunta, respuesta.message.content)
 if __name__ == "__main__":
+    guardar_indice()
     chat()
