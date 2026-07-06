@@ -4,24 +4,32 @@ import os, ollama, time
 
 #Crearemos una función para guardar un índice con los nombres de los archivos y sus etiquetas para que la IA pueda acceder a ellos y buscar información relevante antes de responder.
 def guardar_indice():
-    #Primero comprueba que la carpeta "Memoria" exista, si no la crea.
-    CARPETA_MEMORIA = "Memoria"
-    if not os.path.exists(CARPETA_MEMORIA):
-        os.makedirs(CARPETA_MEMORIA)
+    etiquetas = [] # Esto será todo lo que esté entre corchetes []
+
+    # 1. Recorremos los archivos de la carpeta
+    for nombre_archivo in os.listdir("Memoria"):
+        if nombre_archivo.endswith(".md") and nombre_archivo != "indice.md":
+            
+            # Abrimos el archivo actual
+            with open(os.path.join("Memoria", nombre_archivo), "r", encoding="utf-8") as f:
+                
+                # Creamos la variable por defecto por si acaso el archivo estuviera vacío
+                etiqueta_encontrada = "sin_etiqueta"
+                
+                # 2. Recorremos línea por línea usando una variable distinta
+                for linea in f:
+                    linea_limpia = linea.strip() # Quitamos espacios y saltos de línea (\n)
+                    
+                    # Comprobamos si es la línea de la etiqueta
+                    if linea_limpia.startswith("[") and linea_limpia.endswith("]"):
+                        etiqueta_encontrada = linea_limpia[1:-1] # Le quitamos los corchetes
+                        break # Ya encontramos la etiqueta, podemos dejar de leer este archivo
+                etiquetas.append(etiqueta_encontrada)
+                # 3. Guardamos en el índice usando las variables correctas
+                with open(os.path.join("Memoria", "indice.md"), "w", encoding="utf-8") as f_indice:
+                    f_indice.write(f"-- Título: [{nombre_archivo}] -- Etiqueta: [{etiqueta_encontrada}]\n")
     
-    #Ahora creamos un archivo de índice con los nombres de los archivos y sus etiquetas.
-    indice = []
-    for archivo in os.listdir(CARPETA_MEMORIA):
-        if archivo.endswith(".md"):
-            with open(f"{CARPETA_MEMORIA}/{archivo}", "r", encoding="utf-8") as f:
-                contenido = f.read()
-                #Extraemos el nombre del tema de la primera línea del archivo
-                nombre_tema = contenido.split("\n")[1].strip("[]")
-                indice.append({"nombre_archivo": f"[{archivo}]", "nombre_tema": f"[{nombre_tema}]"})
-    
-    #Guardamos el índice en un archivo .md para que la IA pueda acceder a él y aún funcione con obsidian.
-    with open(f"{CARPETA_MEMORIA}/indice.md", "w", encoding="utf-8") as f:
-        f.write(str(indice))
+
     
 #Función para acceder a la memoria inteligente en cada respuesta de la IA
 def acceso_memoria_inteligente():
@@ -67,3 +75,4 @@ IA: {respuesta_ia}"""
                 archivo.write(f"{partes_resumen[parte+1]}")
     except Exception as error:
         print(f"No se guardó en la memoria debido a: {error}")
+    guardar_indice()  # Actualizamos el índice después de guardar la memoria
