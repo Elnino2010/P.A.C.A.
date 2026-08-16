@@ -1,0 +1,15 @@
+plugins.json
+venv/
+.venv/
+env/
+
+__pycache__/
+*.pyc
+
+*.env
+config.json
+
+Memoria/
+telegram.plugin/
+agenda.json
+temp_audio/
