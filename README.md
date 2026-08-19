@@ -24,25 +24,32 @@ Para consultar más modelos via ollama busca [aquí](https://ollama.com/search).
 ---
 
 **Plugins incluidos**:
-    - Calendario **(calendario.plugin)**
-        - Añade una ventana con un calendario con eventos que añade el usuario
-        - Permite usar comandos directos para añadir eventos a días futuros
-    - Documentos **(documentos.plugin)**:
-        - Abre un gestor de archivos donde podrás ver y abrir tus archivos en aplicaciones ya instaladas
-        - Permite introducir una ruta absoluta en la barra de comandos
-    - Barra de estado **(estatus_bar.plugin)**:
-        - Añade un visor de porcentaje de uso de CPU y RAM.
-    - Chat de ollama **(ollama.plugin)**:
-        - Permite interactuar con una IA desde el chat.
-        - Tiene memoria por chat
-        - Tiene memoria persistente en formato .md para integrar manualmente en una bóveda de obsidian
-    - Gestor inteligente **(orquestador.plugin)**:
-        - Permite mandar un mensaje directamente en la barra y que este sea mandado al plugin correspondiente
-    - Gestor de medios **(reproductor.plugin)**:
-        - Permite gestionar la música del dispositivo ya sea por botones o comandos directos.
-        - Puede reproducir música de fuentes como youtube.
-        - Almacena una biblioteca con la lista de canciones escuchadas para que sea más fácil volver a ponerlas.
-    - TTS **(voz.plugin)**:
-        - Los mensajes del sistema pasan a ser tanto escritos como hablados por el programa.
-    - Interfaz **(simpleui.plugin)**:
-        - Interfaz sencilla que da un contraste más alto a la interfaz, existe como plantilla para mostrar los cambios que se pueden realizar en customtkinter, la librería que usa.
+- Calendario **(calendario.plugin)**
+    - Añade una ventana con un calendario con eventos que añade el usuario
+    - Permite usar comandos directos para añadir eventos a días futuros
+
+- Documentos **(documentos.plugin)**:
+    - Abre un gestor de archivos donde podrás ver y abrir tus archivos en aplicaciones ya instaladas
+    - Permite introducir una ruta absoluta en la barra de comandos
+
+- Barra de estado **(estatus_bar.plugin)**:
+    - Añade un visor de porcentaje de uso de CPU y RAM.
+
+- Chat de ollama **(ollama.plugin)**:
+    - Permite interactuar con una IA desde el chat.
+    - Tiene memoria por chat
+    - Tiene memoria persistente en formato .md para integrar manualmente en una bóveda de obsidian
+
+- Gestor inteligente **(orquestador.plugin)**:
+    - Permite mandar un mensaje directamente en la barra y que este sea mandado al plugin correspondiente
+
+- Gestor de medios **(reproductor.plugin)**:
+    - Permite gestionar la música del dispositivo ya sea por botones o comandos directos.
+    - Puede reproducir música de fuentes como youtube.
+    - Almacena una biblioteca con la lista de canciones escuchadas para que sea más fácil volver a ponerlas.
+
+- TTS **(voz.plugin)**:
+    - Los mensajes del sistema pasan a ser tanto escritos como hablados por el programa.
+
+- Interfaz **(simpleui.plugin)**:
+    - Interfaz sencilla que da un contraste más alto a la interfaz, existe como plantilla para mostrar los cambios que se pueden realizar en customtkinter, la librería que usa.
