@@ -4,6 +4,11 @@ import threading
 import customtkinter as ctk
 from datetime import datetime
 from base import PluginBase
+from dotenv import load_dotenv
+
+load_dotenv()
+
+modelo_ollama = os.getenv("OLLAMA_MODEL", "gemma:2b")  # Modelo por defecto si no está en .env
 
 # Intento de importación segura de TkCalendar
 try:
@@ -26,7 +31,7 @@ class PluginAgendaCalendario(PluginBase):
         self.ventana_agenda = None
         self.ruta_json = os.path.join(os.path.dirname(__file__), "agenda.json")
         self.datos_agenda = self._cargar_datos()
-        self.modelo_ollama = "gemma4:e4b"  # Puedes cambiarlo
+        self.modelo_ollama = modelo_ollama
 
     @property
     def nombre(self) -> str:

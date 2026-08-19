@@ -1,6 +1,9 @@
 #Aquí gestionaremos la memoria del modelo
 #Será una memoria tipo bóbeda de obsidian, donde se guardarán los datos en distintos archivos .md con etiquetas que la IA buscará antes de responder y cambiará después de cada respuesta para que la IA pueda aprender de sus errores y mejorar su rendimiento.
 import os, ollama, time
+from dotenv import load_dotenv
+load_dotenv()
+ollama_model = os.getenv("OLLAMA_MODEL", "gemma:2b") 
 
 #Crearemos una función para guardar un índice con los nombres de los archivos y sus etiquetas para que la IA pueda acceder a ellos y buscar información relevante antes de responder.
 def guardar_indice():
@@ -71,7 +74,7 @@ CONVERSACIÓN A ANALIZAR:
 Usuario: {pregunta_usuario}
 IA: {respuesta_ia}"""
     mensaje_memoria = [{"role": "system", "content": mresumen}]
-    respuesta_memoria = ollama.chat(model='gemma4:e4b', messages=mensaje_memoria)
+    respuesta_memoria = ollama.chat(model=ollama_model, messages=mensaje_memoria)
     print(f"Resumen de la memoria: {respuesta_memoria.message.content}")
 
     #Para prueba, vamos a guardar la conversación en un archivo de texto plano para ver si funciona correctamente.

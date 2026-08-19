@@ -2,6 +2,9 @@ import os
 import json
 import threading
 from base import PluginBase
+from dotenv import load_dotenv
+load_dotenv()
+ollama_model = os.getenv("OLLAMA_MODEL", "gemma:2b") 
 
 try:
     import ollama
@@ -87,7 +90,7 @@ REGLAS DE RESPUESTA:
 
         try:
             respuesta = ollama.chat(
-                model="gemma4:e4b",
+                model=ollama_model,
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": mensaje_usuario}

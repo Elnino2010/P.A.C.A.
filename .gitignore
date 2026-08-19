@@ -6,10 +6,11 @@ env/
 __pycache__/
 *.pyc
 
-*.env
+.env
 config.json
 
 Memoria/
 telegram.plugin/
 agenda.json
-temp_audio/
+musica/
+Releases/

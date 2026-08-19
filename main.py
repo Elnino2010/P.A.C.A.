@@ -11,7 +11,7 @@ ctk.set_default_color_theme("blue")
 class InterfazJarvis(ctk.CTk):
     def __init__(self):
         super().__init__()
-        self.title("Sistema Central")
+        self.title("P.A.C.A.")
         self.geometry("950x600")
         
         self.panel_lateral = ctk.CTkFrame(self, width=200, corner_radius=0)

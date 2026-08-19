@@ -50,7 +50,7 @@ class PluginRedisenoJarvis(PluginBase):
 
         # Ventana Principal
         app.configure(fg_color=AZUL_OSCURO_FONDO)
-        app.title("J.A.R.V.I.S.")
+        app.title("P.A.C.A.")
 
         # Panel Lateral (Módulos)
         app.panel_lateral.configure(
@@ -111,7 +111,7 @@ class PluginRedisenoJarvis(PluginBase):
         )
 
         # Mensaje de confirmación visual en consola
-        self.funcion_chat("SISTEMA VISUAL", "Interfaz HUD JARVIS aplicada automáticamente.")
+        self.funcion_chat("SISTEMA VISUAL", "Interfaz P.A.C.A. aplicada automáticamente.")
 
     def restaurar_apariencia_original(self):
         """Devuelve los componentes a la estética neutra predeterminada"""

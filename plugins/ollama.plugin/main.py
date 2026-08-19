@@ -3,6 +3,10 @@ import ollama
 from base import PluginBase
 import sys
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
+ModeloOllama = os.getenv("OLLAMA_MODEL", "gemma:2b")  # Modelo por defecto si no está en .env
 ruta_plugin = os.path.dirname(__file__)
 if ruta_plugin not in sys.path:
     sys.path.append(ruta_plugin)
@@ -12,7 +16,7 @@ from memoria import guardar_memoria, acceso_memoria_inteligente, guardar_indice
 class JarvisOllamaPlugin(PluginBase):
     def __init__(self):
         super().__init__()
-        self.modelo = 'gemma4:e4b'
+        self.modelo = ModeloOllama
         self.historial_mensajes = []
         # Inicializa el índice de memoria al instanciar el plugin
         try:

@@ -20,7 +20,7 @@ class PluginGestorArchivos(PluginBase):
 
     @property
     def acepta_comandos_directos(self) -> bool:
-        return True  # Activado para poder pasarle rutas por chat si quieres
+        return True  # Activado para poder pasarle rutas por chat
 
     def cargar_ui(self, frame_espacio, funcion_chat, app=None):
         self.frame_espacio = frame_espacio

@@ -1,13 +1,17 @@
 import os
+import re
 import json
-import shutil
 import threading
 import customtkinter as ctk
 from base import PluginBase
 import static_ffmpeg
 static_ffmpeg.add_paths()
 import keyboard
-# Importaciones seguras de librerías multimedia y de IA
+from dotenv import load_dotenv
+
+load_dotenv()
+ollama_model = os.getenv("OLLAMA_MODEL", "gemma:2b")
+
 try:
     import pygame
     PYGAME_DISPONIBLE = True
@@ -32,13 +36,61 @@ class PluginControladorMedios(PluginBase):
         super().__init__()
         self.reproduciendo = False
         self.cancion_actual = "Ninguna"
-        
-        # Carpeta temporal para guardar la canción que esté sonando
-        self.dir_temp = os.path.join(os.path.dirname(__file__), "temp_audio")
-        os.makedirs(self.dir_temp, exist_ok=True)
+
+        # Carpeta permanente para biblioteca de música y almacenamiento JSON
+        self.dir_musica = os.path.join(os.path.dirname(__file__), "musica")
+        self.ruta_json = os.path.join(self.dir_musica, "biblioteca.json")
+        os.makedirs(self.dir_musica, exist_ok=True)
+
+        self._inicializar_biblioteca()
 
         if PYGAME_DISPONIBLE:
             pygame.mixer.init()
+
+    def _inicializar_biblioteca(self):
+        """Crea el archivo biblioteca.json si no existe."""
+        if not os.path.exists(self.ruta_json):
+            with open(self.ruta_json, "w", encoding="utf-8") as f:
+                json.dump({}, f, ensure_ascii=False, indent=4)
+
+    def _cargar_biblioteca(self) -> dict:
+        """Carga el índice de canciones guardadas."""
+        try:
+            with open(self.ruta_json, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return {}
+
+    def _guardar_en_biblioteca(self, clave_busqueda: str, titulo: str, ruta_archivo: str):
+        """Registra una nueva canción descargada en el JSON."""
+        biblioteca = self._cargar_biblioteca()
+        biblioteca[clave_busqueda.lower()] = {
+            "titulo": titulo,
+            "archivo": os.path.basename(ruta_archivo)
+        }
+        with open(self.ruta_json, "w", encoding="utf-8") as f:
+            json.dump(biblioteca, f, ensure_ascii=False, indent=4)
+
+    def _buscar_en_biblioteca(self, busqueda: str) -> tuple:
+        """Comprueba si la búsqueda coincide con alguna entrada del JSON."""
+        biblioteca = self._cargar_biblioteca()
+        busqueda_clean = busqueda.lower().strip()
+
+        # Búsqueda exacta por clave de solicitud
+        if busqueda_clean in biblioteca:
+            info = biblioteca[busqueda_clean]
+            ruta = os.path.join(self.dir_musica, info["archivo"])
+            if os.path.exists(ruta):
+                return info["titulo"], ruta
+
+        # Búsqueda por coincidencia parcial en el título
+        for clave, info in biblioteca.items():
+            if busqueda_clean in info["titulo"].lower() or busqueda_clean in clave:
+                ruta = os.path.join(self.dir_musica, info["archivo"])
+                if os.path.exists(ruta):
+                    return info["titulo"], ruta
+
+        return None, None
 
     @property
     def nombre(self) -> str:
@@ -46,7 +98,7 @@ class PluginControladorMedios(PluginBase):
 
     @property
     def descripcion(self) -> str:
-        return "Permite controlar la reproducción de medios, como música o videos, desde la interfaz de Jarvis. Usa comandos desde el chat como 'reproduce', 'pausa' o 'detener' para controlar la reproducción."
+        return "Permite controlar la reproducción de música local o buscar de internet sin borrar descargas."
 
     @property
     def acepta_comandos_directos(self) -> bool:
@@ -57,7 +109,6 @@ class PluginControladorMedios(PluginBase):
         self.funcion_chat = funcion_chat
         self.app = app
 
-        # Frame de Controles Multimedia en el área inferior
         self.contenedor_medios = ctk.CTkFrame(self.frame_espacio, fg_color="transparent")
 
         self.btn_play_pause = ctk.CTkButton(
@@ -99,24 +150,21 @@ class PluginControladorMedios(PluginBase):
 
     def al_desactivar(self):
         self.detener_reproduccion()
-        self.limpiar_temporales()
         self.contenedor_medios.pack_forget()
 
     def toggle_play_pause(self):
-        # Si tenemos audio propio de yt-dlp sonando vía pygame, lo pausamos/reanudamos
         if PYGAME_DISPONIBLE and pygame.mixer.music.get_busy():
             if self.reproduciendo:
                 pygame.mixer.music.pause()
                 self.reproduciendo = False
                 self.btn_play_pause.configure(text="▶ Play")
-                self.funcion_chat(self.nombre, "Música de JARVIS pausada.")
+                self.funcion_chat(self.nombre, "Música pausada.")
             else:
                 pygame.mixer.music.unpause()
                 self.reproduciendo = True
                 self.btn_play_pause.configure(text="⏸ Pausa")
-                self.funcion_chat(self.nombre, "Reanudando música de JARVIS.")
+                self.funcion_chat(self.nombre, "Reanudando música.")
         else:
-            # Si no hay audio propio, enviamos la tecla multimedia global de Windows
             keyboard.send("play/pause media")
             self.funcion_chat(self.nombre, " ⏯ Comando Play/Pausa enviado al sistema.")
 
@@ -129,32 +177,38 @@ class PluginControladorMedios(PluginBase):
         if hasattr(self, 'lbl_cancion'):
             self.lbl_cancion.configure(text="Ninguna")
             self.btn_play_pause.configure(text="▶ Play")
-        self.limpiar_temporales()
 
-    def limpiar_temporales(self):
-        """Borra la carpeta de descarga temporal para no dejar basura en el disco"""
-        try:
-            if os.path.exists(self.dir_temp):
-                for archivo in os.listdir(self.dir_temp):
-                    ruta_file = os.path.join(self.dir_temp, archivo)
-                    if os.path.isfile(ruta_file):
-                        os.remove(ruta_file)
-        except Exception:
-            pass  # Si el archivo está ocupado aún por el reproductor, se borrará en la siguiente limpieza
+    def _reproducir_archivo(self, titulo: str, ruta_mp3: str):
+        """Carga y reproduce una pista mediante Pygame."""
+        pygame.mixer.music.stop()
+        pygame.mixer.music.unload()
+        pygame.mixer.music.load(ruta_mp3)
+        pygame.mixer.music.play()
+        self.reproduciendo = True
+        self.cancion_actual = titulo[:30] + "..." if len(titulo) > 30 else titulo
+
+        self.lbl_cancion.configure(text=f"{self.cancion_actual}")
+        self.btn_play_pause.configure(text="⏸ Pausa")
+        self.funcion_chat(self.nombre, f"▶ Reproduciendo: {titulo}")
 
     def buscar_y_reproducir(self, busqueda: str):
-        """Descarga el audio en segundo plano y lo reproduce"""
         if not YTDLP_DISPONIBLE or not PYGAME_DISPONIBLE:
             self.funcion_chat(self.nombre, "Faltan las librerías 'yt-dlp' o 'pygame'.")
             return
 
-        self.funcion_chat(self.nombre, f"Buscando y descargando audio para: '{busqueda}'...")
-        self.detener_reproduccion()
+        # 1. Comprobar si ya existe en la biblioteca local
+        titulo_guardado, ruta_guardada = self._buscar_en_biblioteca(busqueda)
+        if ruta_guardada:
+            self.funcion_chat(self.nombre, f"📁 Canción encontrada en almacenamiento local: '{titulo_guardado}'")
+            self._reproducir_archivo(titulo_guardado, ruta_guardada)
+            return
 
-        # Opciones para yt-dlp: Extraer solo audio en MP3 comprimido ligero
+        # 2. Descargar con yt-dlp manteniendo las cookies e historial técnico intacto
+        self.funcion_chat(self.nombre, f"🔎 Descargando audio para: '{busqueda}'...")
+
         opciones_ytdlp = {
             'format': 'bestaudio/best',
-            'outtmpl': os.path.join(self.dir_temp, 'cancion_actual.%(ext)s'),
+            'outtmpl': os.path.join(self.dir_musica, '%(title)s.%(ext)s'),
             'postprocessors': [{
                 'key': 'FFmpegExtractAudio',
                 'preferredcodec': 'mp3',
@@ -163,7 +217,6 @@ class PluginControladorMedios(PluginBase):
             'quiet': True,
             'noplaylist': True,
             'default_search': 'ytsearch1:',
-            # Evitar errores de bloqueo por parte de YouTube con un User-Agent válido
             'http_headers': {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -180,34 +233,30 @@ class PluginControladorMedios(PluginBase):
             with yt_dlp.YoutubeDL(opciones_ytdlp) as ydl:
                 info = ydl.extract_info(busqueda, download=True)
                 if 'entries' in info and len(info['entries']) > 0:
-                    titulo = info['entries'][0]['title']
+                    datos = info['entries'][0]
                 else:
-                    titulo = info.get('title', busqueda)
+                    datos = info
 
-            # Buscamos el archivo mp3 descargado en la carpeta temp
-            archivo_mp3 = None
-            for f in os.listdir(self.dir_temp):
-                if f.endswith(".mp3"):
-                    archivo_mp3 = os.path.join(self.dir_temp, f)
-                    break
+                titulo = datos.get('title', busqueda)
+                nombre_sanitizado = re.sub(r'[\\/*?:"<>|]', "", titulo)
+                archivo_esperado = os.path.join(self.dir_musica, f"{nombre_sanitizado}.mp3")
 
-            if archivo_mp3 and os.path.exists(archivo_mp3):
-                pygame.mixer.music.load(archivo_mp3)
-                pygame.mixer.music.play()
-                self.reproduciendo = True
-                self.cancion_actual = titulo[:30] + "..." if len(titulo) > 30 else titulo
-                
-                # Actualizar UI
-                self.lbl_cancion.configure(text=f"{self.cancion_actual}")
-                self.btn_play_pause.configure(text="⏸ Pausa")
-                self.funcion_chat(self.nombre, f"▶ Reproduciendo: {titulo}")
-            else:
-                self.funcion_chat(self.nombre, "No se pudo procesar el archivo de audio.")
+                # Localizar el archivo descargado final
+                if not os.path.exists(archivo_esperado):
+                    for f in os.listdir(self.dir_musica):
+                        if f.endswith(".mp3") and nombre_sanitizado[:15].lower() in f.lower():
+                            archivo_esperado = os.path.join(self.dir_musica, f)
+                            break
+
+                if os.path.exists(archivo_esperado):
+                    self._guardar_en_biblioteca(busqueda, titulo, archivo_esperado)
+                    self._reproducir_archivo(titulo, archivo_esperado)
+                else:
+                    self.funcion_chat(self.nombre, "❌ No se pudo localizar el archivo de audio procesado.")
 
         except Exception as e:
-            self.funcion_chat(self.nombre, f"Error al buscar canción: {str(e)}")
+            self.funcion_chat(self.nombre, f"Error al procesar la solicitud: {str(e)}")
 
-    # Integración con ollama
     def procesar_comando_directo(self, texto: str):
         if OLLAMA_DISPONIBLE:
             threading.Thread(target=self._procesar_con_ia, args=(texto,), daemon=True).start()
@@ -239,7 +288,7 @@ Devuelve SOLO el JSON, sin bloques de markdown ni texto adicional.
 """
         try:
             respuesta = ollama.chat(
-                model="gemma4:e4b",
+                model=ollama_model,
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": prompt}
